@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentation Timer</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Yuji+Syuku&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      --font-timer: 'Inter', sans-serif;
+      --font-calligraphy: 'Yuji Syuku', serif;
+      --color-text: #333;
+      --color-bg: #fff;
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      overflow: hidden;
+      font-family: var(--font-timer);
+      box-sizing: border-box;
+      border: 8px solid #b50105;
+    }
+
+    .container {
+      text-align: center;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Timer Display */
+    #timer-display {
+      font-size: 15vw;
+      /* Large responsive font size */
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      display: none;
+      /* Hidden by default */
+    }
+
+    /* Calligraphy Text (Start/End) */
+    .calligraphy-text {
+      font-family: var(--font-calligraphy);
+      font-size: 20vw;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      pointer-events: none;
+      /* Allow clicks to pass through if needed */
+    }
+
+    .calligraphy-text.visible {
+      opacity: 1;
+    }
+
+    /* Controls */
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      opacity: 0;
+      /* Hidden by default, show on hover or make subtle */
+      transition: opacity 0.3s;
+    }
+
+    body:hover .controls {
+      opacity: 1;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background: #f0f0f0;
+      border-radius: 4px;
+      font-family: var(--font-timer);
+    }
+
+    button:hover {
+      background: #e0e0e0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <!-- Calligraphy Messages -->
+    <div id="msg-start" class="calligraphy-text">開始</div>
+    <div id="msg-end" class="calligraphy-text">終了</div>
+
+    <!-- Timer -->
+    <div id="timer-display">00:00</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="btn-start">Start</button>
+    <button id="btn-end">End</button>
+  </div>
+
+  <script>
+    // --- Configuration ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialMinutes = parseInt(urlParams.get('minutes') || '5', 10); // Default to 5 minutes
+    const initialSeconds = parseInt(urlParams.get('seconds') || '0', 10);
+
+    let totalSeconds = (initialMinutes * 60) + initialSeconds;
+    let remainingSeconds = totalSeconds;
+    let timerInterval = null;
+    let isRunning = false;
+
+    // --- DOM Elements ---
+    const display = document.getElementById('timer-display');
+    const msgStart = document.getElementById('msg-start');
+    const bellSound = new Audio('https://raw.githubusercontent.com/freeCodeCamp/cdn/master/build/testable-projects-fcc/audio/BeepSound.wav');
+    const msgEnd = document.getElementById('msg-end');
+    const btnStart = document.getElementById('btn-start');
+    const btnEnd = document.getElementById('btn-end');
+
+    // --- Helpers ---
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      display.textContent = formatTime(remainingSeconds);
+    }
+
+    // --- States ---
+    function showStartMessage() {
+      msgEnd.classList.remove('visible');
+      display.style.display = 'none';
+      msgStart.classList.add('visible');
+
+      // Show "開始" for 2 seconds, then show timer
+      setTimeout(() => {
+        msgStart.classList.remove('visible');
+        startTimer();
+      }, 2000); // 2 seconds delay
+    }
+
+    function startTimer() {
+      display.style.display = 'block';
+      if (isRunning) return;
+
+      isRunning = true;
+      timerInterval = setInterval(() => {
+        if (remainingSeconds > 0) {
+          remainingSeconds--;
+          updateDisplay();
+        } else {
+          bellSound.play().catch(e => console.warn("Sound play blocked:", e));
+          finishTimer();
+        }
+      }, 1000);
+    }
+
+    function finishTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      display.style.display = 'none';
+      msgStart.classList.remove('visible'); // Ensure start is gone
+      msgEnd.classList.add('visible');
+    }
+
+    function forceEnd() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      remainingSeconds = 0;
+      updateDisplay();
+
+      // Immediately show "終了"
+      display.style.display = 'none';
+      msgStart.classList.remove('visible');
+      msgEnd.classList.add('visible');
+    }
+
+    // --- Event Listeners ---
+    btnStart.addEventListener('click', () => {
+      if (isRunning) return; // Prevent double start
+      // Reset if already finished? 
+      if (remainingSeconds === 0) {
+        remainingSeconds = totalSeconds;
+        updateDisplay();
+        msgEnd.classList.remove('visible');
+      }
+      showStartMessage();
+    });
+
+    btnEnd.addEventListener('click', () => {
+      forceEnd();
+    });
+
+    // --- Initialization ---
+    updateDisplay();
+    // show display initially so we can see the time before starting? 
+    // Request says: "Button click -> 'Start' text -> Timer -> 'End' text"
+    // So initially maybe show nothing or the initial time? 
+    // Let's show the initial time to confirm it's loaded correctly, then hide it when 'Start' sequence begins?
+    // Or keep it simple: Just show the formatted time as static text until Start is clicked?
+
+    display.style.display = 'block';
+
+  </script>
+</body>
+
+</html>

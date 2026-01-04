@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roulette & Timer - 充電残量</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --font-main: 'Inter', sans-serif;
+            --color-text: #333;
+            --color-accent: #b50105;
+            --color-bg: #fff;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow: hidden;
+            font-family: var(--font-main);
+            box-sizing: border-box;
+            border: 8px solid var(--color-accent);
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            transition: opacity 0.5s ease;
+        }
+
+        h1 {
+            font-size: 8vw;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .timer-info-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4vw;
+            margin-bottom: 30px;
+        }
+
+        .timer-info-row h1,
+        .timer-info-row h2 {
+            font-size: 5vw;
+            margin: 0;
+            font-weight: 700;
+            color: var(--color-accent);
+        }
+
+        .roulette-wrapper {
+            font-size: 15vw;
+            font-weight: 700;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .digit {
+            width: 0.7em;
+            height: 1.2em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .timer-display {
+            font-size: 15vw;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .instruction {
+            margin-top: 30px;
+            font-size: 1.5vw;
+            color: #888;
+        }
+
+        /* Animation class */
+        .spinning {
+            animation: jitter 0.1s infinite;
+        }
+
+        @keyframes jitter {
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-2px);
+            }
+
+            100% {
+                transform: translateY(2px);
+            }
+        }
+
+        .flash {
+            animation: flash-animation 0.5s ease-out;
+        }
+
+        @keyframes flash-animation {
+            0% {
+                background-color: var(--color-accent);
+                color: white;
+            }
+
+            100% {
+                background-color: #f9f9f9;
+                color: var(--color-text);
+            }
+        }
+
+        .btn-control {
+            font-family: var(--font-main);
+            background: none;
+            border: 2px solid var(--color-accent);
+            color: var(--color-accent);
+            padding: 10px 40px;
+            font-size: 2rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        .btn-control:hover {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        .btn-control.stop {
+            border-color: #333;
+            color: #333;
+        }
+
+        .btn-control.stop:hover {
+            background: #333;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container" id="app">
+        <!-- Roulette Section -->
+        <div id="roulette-section">
+            <h1>充電残量の合計</h1>
+            <div class="roulette-wrapper">
+                <div id="digit-1" class="digit">0</div>
+                <div id="digit-2" class="digit">0</div>
+                <div id="digit-3" class="digit">0</div>
+            </div>
+            <p class="instruction" id="roulette-instruction">画面をクリックしてスタート</p>
+        </div>
+
+        <!-- Timer Section -->
+        <div id="timer-section" style="display: none;">
+            <div class="timer-info-row">
+                <h1>お題：充電残量の合計</h1>
+                <h2 id="target-display">設定数値：---</h2>
+            </div>
+            <div id="timer-display" class="timer-display">07:00</div>
+            <div class="controls">
+                <button id="timer-btn" class="btn-control">開始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION
+        const MIN = 100;
+        const MAX = 400;
+        const TIMER_DURATION = 7 * 60; // 7 minutes
+
+        const digits = [
+            document.getElementById('digit-1'),
+            document.getElementById('digit-2'),
+            document.getElementById('digit-3')
+        ];
+        const app = document.getElementById('app');
+        const rouletteSection = document.getElementById('roulette-section');
+        const timerSection = document.getElementById('timer-section');
+        const rouletteInstruction = document.getElementById('roulette-instruction');
+        const targetDisplay = document.getElementById('target-display');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerBtn = document.getElementById('timer-btn');
+
+        // State
+        let isSpinning = false;
+        let isSettled = false;
+        let isTimerMode = false;
+        let finalResult = 0;
+        let timerSeconds = TIMER_DURATION;
+        let timerInterval = null;
+        const bellSound = new Audio('https://raw.githubusercontent.com/freeCodeCamp/cdn/master/build/testable-projects-fcc/audio/BeepSound.wav');
+
+        // Initialize UI
+        setDigits(MIN);
+
+        function setDigits(value) {
+            const str = String(value).padStart(3, '0');
+            digits[0].textContent = str[0];
+            digits[1].textContent = str[1];
+            digits[2].textContent = str[2];
+        }
+
+        function getRandomDigit() {
+            return Math.floor(Math.random() * 10);
+        }
+
+        function spin() {
+            if (isSpinning) return;
+            isSpinning = true;
+            digits.forEach(d => d.classList.add('spinning'));
+
+            let startTime = Date.now();
+            const duration = 2500 + Math.random() * 1000;
+
+            const interval = setInterval(() => {
+                digits.forEach(d => {
+                    d.textContent = getRandomDigit();
+                });
+
+                if (Date.now() - startTime > duration) {
+                    clearInterval(interval);
+                    stopRoulette();
+                }
+            }, 60);
+        }
+
+        function stopRoulette() {
+            isSpinning = false;
+            isSettled = true;
+            digits.forEach(d => {
+                d.classList.remove('spinning');
+                d.classList.add('flash');
+                setTimeout(() => d.classList.remove('flash'), 500);
+            });
+
+            finalResult = Math.floor(Math.random() * (MAX - MIN + 1)) + MIN;
+            setDigits(finalResult);
+
+            const wrapper = document.querySelector('.roulette-wrapper');
+            wrapper.style.transform = "scale(1.15)";
+            setTimeout(() => {
+                wrapper.style.transform = "scale(1)";
+            }, 400);
+
+            rouletteInstruction.textContent = "クリックしてタイマーを表示";
+        }
+
+        function transitionToTimer() {
+            isTimerMode = true;
+            rouletteSection.style.display = 'none';
+            timerSection.style.display = 'block';
+            targetDisplay.textContent = `設定数値：${finalResult}`;
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function toggleTimer() {
+            if (timerInterval) {
+                // Stop
+                clearInterval(timerInterval);
+                timerInterval = null;
+                timerBtn.textContent = '再開';
+                timerBtn.classList.remove('stop');
+            } else {
+                // Start
+                timerInterval = setInterval(() => {
+                    if (timerSeconds > 0) {
+                        timerSeconds--;
+                        timerDisplay.textContent = formatTime(timerSeconds);
+                    } else {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        bellSound.play().catch(e => console.warn("Sound play blocked:", e));
+                        timerBtn.style.display = 'none';
+                        alert('終了！');
+                    }
+                }, 1000);
+                timerBtn.textContent = '停止';
+                timerBtn.classList.add('stop');
+            }
+        }
+
+        app.addEventListener('click', (e) => {
+            if (isTimerMode) return;
+
+            if (isSettled) {
+                transitionToTimer();
+            } else {
+                spin();
+            }
+        });
+
+        timerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleTimer();
+        });
+    </script>
+</body>
+
+</html>
