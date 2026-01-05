@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pop Scoreboard - Mario Party Style</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=M+PLUS+Rounded+1c:wght@700;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --team-a-color: #FF2E63;
+            --team-b-color: #08D9D6;
+            --team-c-color: #FFDE7D;
+            --bg-color: #252A34;
+            --font-pop: 'Luckiest Guy', cursive;
+            --font-jp: 'M PLUS Rounded 1c', sans-serif;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font-jp);
+            background: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(255, 46, 99, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(8, 217, 214, 0.1) 0%, transparent 40%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Background animated pattern */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            z-index: -1;
+            animation: move-bg 20s linear infinite;
+        }
+
+        @keyframes move-bg {
+            from {
+                background-position: 0 0;
+            }
+
+            to {
+                background-position: 60px 60px;
+            }
+        }
+
+        .header {
+            position: absolute;
+            top: 30px;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .header h1 {
+            font-family: var(--font-pop);
+            color: #fff;
+            font-size: 3rem;
+            margin: 0;
+            text-shadow: 4px 4px 0px var(--team-a-color), 8px 8px 0px rgba(0, 0, 0, 0.2);
+            letter-spacing: 2px;
+            transform: rotate(-2deg);
+        }
+
+        .scoreboard-container {
+            display: flex;
+            gap: 40px;
+            width: 90%;
+            max-width: 1200px;
+            justify-content: center;
+            align-items: flex-end;
+            perspective: 1000px;
+            z-index: 5;
+        }
+
+        .team-card {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 6px solid #fff;
+            border-radius: 40px;
+            padding: 50px 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .team-card::after {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border-radius: 48px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .rank-badge {
+            position: absolute;
+            top: -40px;
+            font-family: var(--font-pop);
+            font-size: 2.5rem;
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #fff;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+            transform: scale(0);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+        }
+
+        .rank-1 {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            transform: scale(1.2) rotate(-5deg);
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px #FFD700;
+        }
+
+        .rank-2 {
+            background: linear-gradient(45deg, #C0C0C0, #808080);
+            transform: scale(1) rotate(3deg);
+            border: 4px solid #fff;
+        }
+
+        .rank-3 {
+            background: linear-gradient(45deg, #CD7F32, #8B4513);
+            transform: scale(0.9) rotate(-2deg);
+            border: 4px solid #fff;
+        }
+
+        .team-name {
+            font-family: var(--font-pop);
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+            text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.3);
+        }
+
+        #card-a {
+            background-color: rgba(255, 46, 99, 0.15);
+            border-color: var(--team-a-color);
+        }
+
+        #card-b {
+            background-color: rgba(8, 217, 214, 0.15);
+            border-color: var(--team-b-color);
+        }
+
+        #card-c {
+            background-color: rgba(255, 222, 125, 0.15);
+            border-color: var(--team-c-color);
+        }
+
+        .winner {
+            box-shadow: 0 0 50px #fff;
+            transform: scale(1.05) translateY(-20px);
+        }
+
+        #card-a.winner {
+            border-color: #fff;
+            background-color: rgba(255, 46, 99, 0.4);
+        }
+
+        #card-b.winner {
+            border-color: #fff;
+            background-color: rgba(8, 217, 214, 0.4);
+        }
+
+        #card-c.winner {
+            border-color: #fff;
+            background-color: rgba(255, 222, 125, 0.4);
+        }
+
+        .score-display {
+            font-family: var(--font-pop);
+            font-size: 8rem;
+            line-height: 1;
+            margin-bottom: 30px;
+            color: #fff;
+            text-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 260px;
+            z-index: 5;
+        }
+
+        .points-input {
+            flex: 1;
+            min-width: 0;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 20px;
+            padding: 15px;
+            font-size: 1.5rem;
+            font-family: var(--font-jp);
+            font-weight: 900;
+            text-align: center;
+            outline: none;
+            color: var(--bg-color);
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .add-button {
+            background: #fff;
+            color: var(--bg-color);
+            border: none;
+            border-radius: 20px;
+            padding: 0 20px;
+            font-family: var(--font-pop);
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0px #ccc, 0 10px 20px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+        }
+
+        .add-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0px #ccc, 0 12px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .add-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #ccc;
+        }
+
+        /* Blackout Overlay */
+        #blackout {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #blackout.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Confetti Canvas */
+        #confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 150;
+            pointer-events: none;
+        }
+
+        /* Reveal Trigger */
+        .facilitator-controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 200;
+        }
+
+        .reveal-button {
+            background: #fff;
+            color: var(--bg-color);
+            border: 4px solid var(--team-a-color);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 2.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .reveal-button:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        .reveal-button.active {
+            background: var(--team-a-color);
+            color: #fff;
+            border-color: #fff;
+        }
+
+        /* Drumroll Text */
+        #drumroll-text {
+            color: #fff;
+            font-family: var(--font-pop);
+            font-size: 4rem;
+            text-align: center;
+            animation: pulse 1s infinite alternate;
+            display: none;
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            to {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+        }
+
+        /* Controls */
+        .controls {
+            margin-top: 60px;
+            display: flex;
+            gap: 20px;
+            z-index: 5;
+        }
+
+        .reset-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.5);
+            padding: 10px 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: var(--font-jp);
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .reset-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .back-link {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.3);
+            text-decoration: none;
+            font-size: 1rem;
+            z-index: 5;
+        }
+
+        .back-link:hover {
+            color: #fff;
+        }
+
+        @keyframes flash {
+            0% {
+                filter: brightness(1);
+            }
+
+            50% {
+                filter: brightness(2);
+            }
+
+            100% {
+                filter: brightness(1);
+            }
+        }
+
+        .flash {
+            animation: flash 0.3s ease-out;
+        }
+
+        @media (max-width: 900px) {
+            .scoreboard-container {
+                flex-direction: column;
+                align-items: center;
+                overflow-y: auto;
+                height: 80vh;
+                padding-top: 100px;
+            }
+
+            .team-card {
+                width: 100%;
+                max-width: 400px;
+                flex: none;
+            }
+
+            body {
+                overflow-y: auto;
+            }
+
+            .header {
+                position: relative;
+                top: 0;
+                margin-top: 50px;
+                margin-bottom: 50px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="blackout">
+        <div id="drumroll-text">WHO IS THE WINNER?</div>
+    </div>
+
+    <canvas id="confetti"></canvas>
+
+    <div class="header">
+        <h1>BATTLE SCORE!!</h1>
+    </div>
+
+    <div class="scoreboard-container" id="container">
+        <!-- Team A -->
+        <div class="team-card" id="card-a">
+            <div id="rank-a" class="rank-badge">1st</div>
+            <div class="team-name">Team A</div>
+            <div class="score-display" id="score-a">0</div>
+            <div class="input-group">
+                <input type="number" class="points-input" id="input-a" placeholder="数値"
+                    onkeydown="if(event.key==='Enter') addPoints('a')">
+                <button class="add-button" onclick="addPoints('a')">+</button>
+            </div>
+        </div>
+
+        <!-- Team B -->
+        <div class="team-card" id="card-b">
+            <div id="rank-b" class="rank-badge">2nd</div>
+            <div class="team-name">Team B</div>
+            <div class="score-display" id="score-b">0</div>
+            <div class="input-group">
+                <input type="number" class="points-input" id="input-b" placeholder="数値"
+                    onkeydown="if(event.key==='Enter') addPoints('b')">
+                <button class="add-button" onclick="addPoints('b')">+</button>
+            </div>
+        </div>
+
+        <!-- Team C -->
+        <div class="team-card" id="card-c">
+            <div id="rank-c" class="rank-badge">3rd</div>
+            <div class="team-name">Team C</div>
+            <div class="score-display" id="score-c">0</div>
+            <div class="input-group">
+                <input type="number" class="points-input" id="input-c" placeholder="数値"
+                    onkeydown="if(event.key==='Enter') addPoints('c')">
+                <button class="add-button" onclick="addPoints('c')">+</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="reset-button" onclick="resetScores()">RESET ALL</button>
+    </div>
+
+    <div class="facilitator-controls">
+        <button class="reveal-button" id="reveal-toggle" onclick="toggleReveal()" title="暗転 / 結果発表">🎬</button>
+    </div>
+
+    <a href="../index.html" class="back-link">← MENU</a>
+
+    <script>
+        let scores = { a: 0, b: 0, c: 0 };
+        let isRevealed = true;
+
+        function addPoints(team) {
+            const input = document.getElementById(`input-${team}`);
+            const display = document.getElementById(`score-${team}`);
+            const card = document.getElementById(`card-${team}`);
+            const value = parseInt(input.value);
+
+            if (!isNaN(value)) {
+                scores[team] += value;
+                card.classList.add('flash');
+                display.style.transform = 'scale(1.5) rotate(5deg)';
+
+                setTimeout(() => {
+                    display.innerText = scores[team];
+                    display.style.transform = 'scale(1) rotate(0deg)';
+                    card.classList.remove('flash');
+                    updateRankings();
+                }, 200);
+
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function updateRankings() {
+            const teamArray = [
+                { id: 'a', score: scores.a },
+                { id: 'b', score: scores.b },
+                { id: 'c', score: scores.c }
+            ];
+
+            teamArray.sort((a, b) => b.score - a.score);
+
+            let currentRank = 1;
+            teamArray.forEach((team, index) => {
+                if (index > 0 && team.score < teamArray[index - 1].score) {
+                    currentRank = index + 1;
+                }
+                team.rank = currentRank;
+            });
+
+            teamArray.forEach((team) => {
+                const badge = document.getElementById(`rank-${team.id}`);
+                const card = document.getElementById(`card-${team.id}`);
+                badge.className = 'rank-badge';
+                card.classList.remove('winner');
+
+                if (team.score > 0 || teamArray.some(t => t.score > 0)) {
+                    badge.style.transform = 'scale(1)';
+                    if (team.rank === 1) {
+                        badge.innerText = '1st';
+                        badge.classList.add('rank-1');
+                        card.classList.add('winner');
+                    } else if (team.rank === 2) {
+                        badge.innerText = '2nd';
+                        badge.classList.add('rank-2');
+                    } else {
+                        badge.innerText = '3rd';
+                        badge.classList.add('rank-3');
+                    }
+                } else {
+                    badge.style.transform = 'scale(0)';
+                }
+            });
+        }
+
+        function resetScores() {
+            if (confirm('REALLY RESET?')) {
+                scores = { a: 0, b: 0, c: 0 };
+                ['a', 'b', 'c'].forEach(id => {
+                    document.getElementById(`score-${id}`).innerText = '0';
+                    document.getElementById(`input-${id}`).value = '';
+                    document.getElementById(`rank-${id}`).style.transform = 'scale(0)';
+                    document.getElementById(`card-${id}`).classList.remove('winner');
+                });
+            }
+        }
+
+        // Reveal Logic
+        function toggleReveal() {
+            const blackout = document.getElementById('blackout');
+            const drumrollText = document.getElementById('drumroll-text');
+            const toggleBtn = document.getElementById('reveal-toggle');
+
+            isRevealed = !isRevealed;
+
+            if (!isRevealed) {
+                // Blackout Mode
+                blackout.classList.add('active');
+                drumrollText.style.display = 'block';
+                toggleBtn.classList.add('active');
+                toggleBtn.innerText = '🎊';
+            } else {
+                // Reveal Mode
+                blackout.classList.remove('active');
+                drumrollText.style.display = 'none';
+                toggleBtn.classList.remove('active');
+                toggleBtn.innerText = '🎬';
+                startConfetti();
+            }
+        }
+
+        // Confetti Performance Implementation
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationFrame;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height - canvas.height;
+                this.size = Math.random() * 10 + 10;
+                this.color = [`#FF2E63`, `#08D9D6`, `#FFDE7D`, `#fff`][Math.floor(Math.random() * 4)];
+                this.speed = Math.random() * 5 + 5;
+                this.angle = Math.random() * 360;
+                this.spin = Math.random() * 5 - 2.5;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.angle += this.spin;
+                if (this.y > canvas.height) this.y = -20;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle * Math.PI / 180);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        function startConfetti() {
+            particles = [];
+            for (let i = 0; i < 150; i++) {
+                particles.push(new Particle());
+            }
+            animateConfetti();
+            setTimeout(() => {
+                cancelAnimationFrame(animationFrame);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 6000);
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            animationFrame = requestAnimationFrame(animateConfetti);
+        }
+
+        updateRankings();
+    </script>
+
+</body>
+
+</html>
